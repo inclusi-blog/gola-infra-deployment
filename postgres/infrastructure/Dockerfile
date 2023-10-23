@@ -9,7 +9,8 @@ RUN apk add jq
 
 RUN apk add gettext
 RUN apk add python3 py3-pip
-RUN pip3 install --upgrade pi
+RUN pip3 install --upgrade pip
+RUN pip3 install awscli --upgrade
 
 ENV FLYWAY_VERSION 9.22.0
 ENV USERNAME gola
@@ -32,8 +33,6 @@ RUN wget https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/${FLYWAY
   && tar -xzf flyway-commandline-${FLYWAY_VERSION}.tar.gz \
   && mv flyway-${FLYWAY_VERSION}/* . \
   && rm flyway-commandline-${FLYWAY_VERSION}.tar.gz
-
-RUN pip3 install awscli --upgrade --user
 
 ENV PATH="${WORKDIR}/flyway:${PATH}"
 
