@@ -255,7 +255,7 @@ jobs:
           helm repo update
           kubectl -n ${NAMESPACE} apply -f redis/pv.yaml
           sudo apt-get install gettext -y
-          SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id $REDIS_DB_PASSWORD_KEY --query 'SecretString' --output text)
+          SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$REDIS_DB_PASSWORD_KEY" --query 'SecretString' --output text)
           ENV_VARS=$(echo $SECRET_JSON | jq -r 'to_entries[] | "\(.key)=\(.value)"')
           # Set the environment variables
           eval $ENV_VARS
