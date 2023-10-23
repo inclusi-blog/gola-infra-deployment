@@ -5,6 +5,7 @@ RUN apk --no-cache add --update bash=4.4.19-r1
 RUN apk upgrade openssl
 
 RUN apk add git
+RUN apk add jq
 
 RUN apk add gettext
 RUN apk add python3 py3-pip
@@ -34,6 +35,8 @@ RUN wget https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/${FLYWAY
   && rm flyway-commandline-${FLYWAY_VERSION}.tar.gz
 
 ENV PATH="${WORKDIR}/flyway:${PATH}"
+ENV PATH="${HOME}/.local/bin:${PATH}"
+
 
 # Install Go
 ENV GO_VERSION 1.21.1
