@@ -260,4 +260,4 @@ jobs:
           # Set the environment variables
           eval $ENV_VARS
           envsubst < redis/values.yaml > redis/ci-values.yaml
-          helm upgrade --install -f redis/ci-values.yaml ${RELEASE_NAME} ${CHART_NAME} --namespace ${NAMESPACE} --timeout 10m30s
+          helm upgrade --install -f redis/ci-values.yaml ${RELEASE_NAME} ${CHART_NAME} --namespace ${NAMESPACE} --create-namespace --timeout 10m30s
