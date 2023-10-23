@@ -112,7 +112,7 @@ jobs:
           sudo apt-get install gettext -y
           envsubst < postgres/helm/postgres/values.yaml > postgres/helm/postgres/ci-values.yaml
           export VERSION="$(grep 'version:' Chart.yaml | awk '{ print $2}')"
-          helm upgrade -f postgres/helm/postgres/ci-values.yaml --install ${RELEASE_NAME} postgres/helm/postgres --set persistence.existingClaim=postgresql-pv-claim --set volumePermissions.enabled=true --set auth.postgresPassword=${DB_ADMIN_PASSWORD} --namespace=${NAMESPACE} --timeout 10m30s
+          helm upgrade -f postgres/helm/postgres/ci-values.yaml --install ${RELEASE_NAME} postgres/helm/postgres --set primary.persistence.existingClaim=postgresql-pv-claim --set volumePermissions.enabled=true --set auth.postgresPassword=${DB_ADMIN_PASSWORD} --namespace=${NAMESPACE} --timeout 10m30s
 
   deploy-public-ingress-dev:
     name: deploy-public-ingress-dev
