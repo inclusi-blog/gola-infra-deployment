@@ -12,6 +12,10 @@ RUN apk --no-cache add \
     python3 \
     py3-pip
 
+RUN pip install --upgrade pip
+RUN pip install --upgrade setuptools
+RUN pip install pyyaml
+
 # Install the AWS CLI using pip
 RUN pip3 install --upgrade awscli
 
