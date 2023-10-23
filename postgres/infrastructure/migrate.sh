@@ -20,8 +20,6 @@ for sql_file in "$sql_dir"/*.sql; do
   fi
 done
 
-cat /home/gola/sql/V1__create_rbac_accounts_databases.sql
-
 if [ $? -eq 0 ]; then
     /home/gola/flyway -url=jdbc:postgresql://"${DB_HOST}":"${DB_PORT}"/"${DB_NAME}" -schemas="${DB_NAME}" -user="${DB_USER}" -password="${POSTGRES_PASSWORD}" -connectRetries=60 -mixed=true migrate
 else
