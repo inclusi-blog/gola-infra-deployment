@@ -19,7 +19,7 @@ for sql_file in "$sql_dir"/*.sql; do
 done
 
 if [ $? -eq 0 ]; then
-    /home/gola/flyway -url=jdbc:postgresql://"${DB_HOST}":"${DB_PORT}"/"${DB_NAME}" -schemas="${DB_NAME}" -user="${DB_USER}" -password="${DEV_DB_POSTGRES_PASSWORD}" -connectRetries=60 -mixed=true migrate
+    /home/gola/flyway -url=jdbc:postgresql://"${DB_HOST}":"${DB_PORT}"/"${DB_NAME}" -schemas="${DB_NAME}" -user="${DB_USER}" -password="${POSTGRES_PASSWORD}" -connectRetries=60 -mixed=true migrate
 else
     echo "Unable to substitute credentials"
     exit 1
