@@ -243,6 +243,7 @@ jobs:
           CHART_NAME: stable/redis
           REDIS_DB_PASSWORD_KEY: ${{ vars.DEV_REDIS_DB_PASSWORD_KEY }}
           ENV: DEV
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
         run: |
           sudo mkdir ~/.kube
           sudo chown -R runner:runner /home/runner/.kube
