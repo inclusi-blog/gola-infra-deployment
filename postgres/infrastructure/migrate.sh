@@ -4,8 +4,8 @@ ENV_VARS=$(echo $SECRET_JSON | jq -r 'to_entries[] | "\(.key)=\(.value)"')
 
 # Set the environment variables
 eval $ENV_VARS
-echo $HYDRA_PASSWORD
-echo $STORY_PASSWORD
+export HYDRA_PASSWORD=$HYDRA_PASSWORD
+export STORY_PASSWORD=$STORY_PASSWORD
 
 sql_dir="/home/gola/sql"
 
