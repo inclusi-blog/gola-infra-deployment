@@ -152,7 +152,7 @@ jobs:
           kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/baremetal/deploy.yaml
           helm repo add metallb https://metallb.github.io/metallb
-          helm install metallb metallb/metallb --namespace metallb-system --create-namespace
+          helm upgrade --install metallb metallb/metallb --namespace metallb-system --create-namespace
           kubectl -n metallb-system apply -f ingress/ippool.yaml
 
   deploy-cert-manager-dev:
