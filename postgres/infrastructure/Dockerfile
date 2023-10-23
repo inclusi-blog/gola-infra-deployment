@@ -9,8 +9,7 @@ RUN apk add jq
 
 RUN apk add gettext
 RUN apk add python3 py3-pip
-RUN pip3 install --upgrade pip
-RUN pip3 install awscli --upgrade --user
+RUN pip3 install --upgrade pi
 
 ENV FLYWAY_VERSION 9.22.0
 ENV USERNAME gola
@@ -34,20 +33,9 @@ RUN wget https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/${FLYWAY
   && mv flyway-${FLYWAY_VERSION}/* . \
   && rm flyway-commandline-${FLYWAY_VERSION}.tar.gz
 
+RUN pip3 install awscli --upgrade --user
+
 ENV PATH="${WORKDIR}/flyway:${PATH}"
-ENV PATH="${HOME}/.local/bin:${PATH}"
-
-
-# Install Go
-ENV GO_VERSION 1.21.1
-RUN wget https://go.dev/dl/go1.21.1.linux-amd64.tar.gz \
-  && tar -xzf go${GO_VERSION}.linux-amd64.tar.gz \
-  && rm go${GO_VERSION}.linux-amd64.tar.gz
-
-ENV PATH="${WORKDIR}/go/bin:${PATH}"
-
-ENV GOPATH="${WORKDIR}/go"
-ENV PATH="${GOPATH}/bin:${PATH}"
 
 COPY postgres/db/migrations /home/gola/sql
 COPY postgres/infrastructure/migrate.sh /home/gola
