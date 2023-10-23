@@ -155,6 +155,7 @@ jobs:
           helm repo update
           helm upgrade --install metallb metallb/metallb --namespace metallb-system --create-namespace
           kubectl -n metallb-system apply -f ingress/ippool.yaml
+          kubectl -n ingress-nginx patch svc ingress-nginx-controller -p '{"spec": {"type": "LoadBalancer"}}'
 
   deploy-cert-manager-dev:
     name: deploy-cert-manager-dev
