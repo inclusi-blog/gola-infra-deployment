@@ -7,17 +7,9 @@ RUN apk upgrade openssl
 RUN apk add git
 
 RUN apk add gettext
-# Install required dependencies
-RUN apk --no-cache add \
-    python3 \
-    py3-pip
-
-RUN pip install --upgrade pip
-RUN pip install --upgrade setuptools
-RUN pip install pyyaml
-
-# Install the AWS CLI using pip
-RUN pip3 install --upgrade awscli
+RUN apk add python3 py3-pip
+RUN pip3 install --upgrade
+RUN pip3 install awscli --upgrade --user
 
 ENV FLYWAY_VERSION 9.22.0
 ENV USERNAME gola
