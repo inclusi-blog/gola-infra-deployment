@@ -1,0 +1,260 @@
+name: gola-infra-deployments
+on: [push]
+permissions:
+  contents: read
+jobs:
+  deploy-global-secrets-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Kubernetes environment
+        run: |
+          sudo curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+          sudo apt-get install apt-transport-https --yes
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+          sudo apt-get update
+          sudo apt-get install helm
+          sudo apt-get update
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          kubectl version --client
+
+      - name: Deploy global config
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+          DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+          DEV_AWS_DEFAULT_REGION: ${{ vars.DEV_AWS_DEFAULT_REGION }}
+          DEV_DB_HOST: ${{ secrets.DEV_DB_HOST }}
+          DEV_DB_PORT: ${{ secrets.DEV_DB_PORT }}
+          DEV_DB_AWS_SECRET_KEY: ${{ secrets.DEV_DB_AWS_SECRET_KEY }}
+          DEV_REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
+          DEV_REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
+          DEV_REDIS_SENTINEL: ${{ secrets.DEV_REDIS_SENTINEL }}
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_ACCESS_TOKEN }}
+        run: |
+          sudo mkdir ~/.kube
+          sudo chown -R runner:runner /home/runner/.kube
+          sudo chmod -R 777 /home/runner/.kube
+          echo "${KUBE_CONFIG}" > ~/.kube/config
+          sudo apt-get install gettext -y
+          envsubst < global/global-secret.yaml > global/ci-secrets.yaml
+          kubectl -n microservices apply -f global/ci-secrets.yaml
+          kubectl -n gola-database apply -f global/ci-secrets.yaml
+
+  docker-migrate-postgres:
+    runs-on: ubuntu-latest
+    needs: [deploy-global-secrets-dev]
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver: docker
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: postgres/infrastructure/Dockerfile
+          push: true
+          tags: gola05/postgres-migrate:latest
+
+  deploy-postgres-dev:
+    needs: [docker-migrate-postgres]
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Kubernetes environment
+        run: |
+          sudo curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+          sudo apt-get install apt-transport-https --yes
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+          sudo apt-get update
+          sudo apt-get install helm
+          sudo apt-get update
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          kubectl version --client
+
+      - name: Deploy Postgres
+        env:
+          CI_PROJECT_DIR: ${{ github.repository }}
+          RELEASE_NAME: database
+          NAMESPACE: ${{ vars.DEV_DB_DEPLOYMENT_NAMESPACE }}
+          CHART_NAME: bitnami/postgresql
+          ENV: dev
+          DB_ADMIN_PASSWORD: ${{ secrets.DEV_DB_ADMIN_PASSWORD }}
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          sudo mkdir ~/.kube
+          sudo chown -R runner:runner /home/runner/.kube
+          sudo chmod -R 777 /home/runner/.kube
+          echo "${KUBE_CONFIG}" > ~/.kube/config
+          kubectl -n ${NAMESPACE} apply -f postgres/postgres-pv.yaml
+          kubectl -n ${NAMESPACE} apply -f postgres/postgres-pvc.yaml
+          sudo apt-get install gettext -y
+          envsubst < postgres/helm/postgres/values.yaml > postgres/helm/postgres/ci-values.yaml
+          export VERSION="$(grep 'version:' Chart.yaml | awk '{ print $2}')"
+          helm upgrade -f postgres/helm/postgres/ci-values.yaml --install ${RELEASE_NAME} postgres/helm/postgres --set persistence.existingClaim=postgresql-pv-claim --set volumePermissions.enabled=true --set auth.postgresPassword=${DB_ADMIN_PASSWORD} --namespace=${NAMESPACE} --timeout 10m30s
+
+  deploy-public-ingress-dev:
+    name: deploy-public-ingress-dev
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.18'
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Kubernetes environment
+        run: |
+          sudo curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+          sudo apt-get install apt-transport-https --yes
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+          sudo apt-get update
+          sudo apt-get install helm
+          sudo apt-get update
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          kubectl version --client
+
+      - name: Deploy ingress
+        env:
+           KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          sudo mkdir ~/.kube
+          sudo chown -R runner:runner /home/runner/.kube
+          sudo chmod -R 777 /home/runner/.kube
+          echo "${KUBE_CONFIG}" > ~/.kube/config
+          helm list -A
+          kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/baremetal/deploy.yaml
+          helm repo add metallb https://metallb.github.io/metallb
+          helm install metallb metallb/metallb --namespace metallb-system --create-namespace
+          kubectl -n metallb-system apply -f ingress/ippool.yaml
+
+  deploy-cert-manager-dev:
+    name: deploy-cert-manager-dev
+    needs: deploy-public-ingress-dev
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.18'
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Kubernetes environment
+        run: |
+          sudo curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+          sudo apt-get install apt-transport-https --yes
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+          sudo apt-get update
+          sudo apt-get install helm
+          sudo apt-get update
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          kubectl version --client
+
+      - name: Deploy Cert manager
+        env:
+          RELEASE_NAME: cert-manager
+          NAMESPACE: ${{ vars.DEV_CERT_MANAGER_DEPLOYMENT_NAMESPACE }}
+          CHART_NAME: jetstack/cert-manager
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          sudo mkdir ~/.kube
+          sudo chown -R runner:runner /home/runner/.kube
+          sudo chmod -R 777 /home/runner/.kube
+          echo "${KUBE_CONFIG}" > ~/.kube/config
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo update
+          helm upgrade --install $RELEASE_NAME $CHART_NAME --namespace $NAMESPACE --create-namespace --version v1.13.1 --set installCRDs=true
+
+      - name: Issue narratenet.com certificates
+        run: |
+          kubectl apply -f ingress/letsencrypt-staging.yaml
+
+  deploy-redis-dev:
+    name: deploy-redis-dev
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.18'
+
+
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2  # Change to your desired region
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Kubernetes environment
+        run: |
+          sudo curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+          sudo apt-get install apt-transport-https --yes
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+          sudo apt-get update
+          sudo apt-get install helm
+          sudo apt-get update
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          kubectl version --client
+
+      - name: Deploy Redis
+        env:
+          RELEASE_NAME: redis
+          NAMESPACE: ${{ vars.DEV_REDIS_DEPLOYMENT_NAMESPACE }}
+          CHART_NAME: stable/redis
+          REDIS_DB_PASSWORD_KEY: ${{ vars.DEV_REDIS_DB_PASSWORD_KEY }}
+          ENV: DEV
+        run: |
+          sudo mkdir ~/.kube
+          sudo chown -R runner:runner /home/runner/.kube
+          sudo chmod -R 777 /home/runner/.kube
+          echo "${KUBE_CONFIG}" > ~/.kube/config
+          helm list -A
+          helm repo add stable https://charts.helm.sh/stable
+          helm repo update
+          kubectl -n ${NAMESPACE} apply -f redis/pv.yaml
+          sudo apt-get install gettext -y
+          SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id $REDIS_DB_PASSWORD_KEY --query 'SecretString' --output text)
+          ENV_VARS=$(echo $SECRET_JSON | jq -r 'to_entries[] | "\(.key)=\(.value)"')
+          # Set the environment variables
+          eval $ENV_VARS
+          envsubst < redis/values.yaml > redis/ci-values.yaml
+          helm upgrade --install -f redis/ci-values.yaml ${RELEASE_NAME} ${CHART_NAME} --namespace ${NAMESPACE} --timeout 10m30s
