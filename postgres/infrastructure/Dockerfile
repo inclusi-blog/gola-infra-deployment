@@ -8,7 +8,7 @@ RUN apk add git
 
 RUN apk add gettext
 RUN apk add python3 py3-pip
-RUN pip3 install --upgrade
+RUN pip3 install --upgrade pip
 RUN pip3 install awscli --upgrade --user
 
 ENV FLYWAY_VERSION 9.22.0
