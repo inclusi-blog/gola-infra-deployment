@@ -5,8 +5,8 @@ BEGIN
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'hydra') THEN
-        CREATE DATABASE hydra WITH OWNER hydra;
-        GRANT ALL PRIVILEGES ON DATABASE hydra TO hydra;
+        EXECUTE 'CREATE DATABASE hydra WITH OWNER hydra';
+        EXECUTE 'GRANT ALL PRIVILEGES ON DATABASE hydra TO hydra';
     END IF;
 
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = 'story') THEN
@@ -14,8 +14,8 @@ BEGIN
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'story') THEN
-        CREATE DATABASE "story" WITH OWNER "story";
-        GRANT ALL PRIVILEGES ON DATABASE "story" TO "story";
+        EXECUTE 'CREATE DATABASE "story" WITH OWNER "story"';
+        EXECUTE 'GRANT ALL PRIVILEGES ON DATABASE "story" TO "story"';
     END IF;
 END $$;
 
