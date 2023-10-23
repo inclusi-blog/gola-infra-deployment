@@ -7,8 +7,13 @@ RUN apk upgrade openssl
 RUN apk add git
 
 RUN apk add gettext
-RUN apk add python3 py3-pip
-RUN pip3 install awscli --upgrade --user
+# Install required dependencies
+RUN apk --no-cache add \
+    python3 \
+    py3-pip
+
+# Install the AWS CLI using pip
+RUN pip3 install --upgrade awscli
 
 ENV FLYWAY_VERSION 9.22.0
 ENV USERNAME gola
@@ -33,7 +38,6 @@ RUN wget https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/${FLYWAY
   && rm flyway-commandline-${FLYWAY_VERSION}.tar.gz
 
 ENV PATH="${WORKDIR}/flyway:${PATH}"
-ENV PATH="${HOME}/.local/bin:${PATH}"
 
 # Install Go
 ENV GO_VERSION 1.21.1
