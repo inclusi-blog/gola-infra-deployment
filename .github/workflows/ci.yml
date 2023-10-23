@@ -242,7 +242,7 @@ jobs:
           RELEASE_NAME: redis
           NAMESPACE: ${{ vars.DEV_REDIS_DEPLOYMENT_NAMESPACE }}
           CHART_NAME: stable/redis
-          REDIS_DB_PASSWORD_KEY: ${{ vars.DEV_REDIS_DB_PASSWORD_KEY }}
+          REDIS_DB_PASSWORD_KEY: ${{ secrets.DEV_REDIS_DB_PASSWORD_KEY }}
           ENV: DEV
           KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
         run: |
