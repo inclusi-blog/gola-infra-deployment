@@ -310,15 +310,10 @@ jobs:
           # Set the environment variables
           eval $ENV_VARS
           export DB_PASSWORD=$HYDRA_PASSWORD
-          SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$HYDRA_SECRET_KEY" --query 'SecretString' --output text)
-          ENV_VARS=$(echo $SECRET_JSON | jq -r 'to_entries[] | "\(.key)=\(.value)"')
-          # Set the environment variables
-          eval $ENV_VARS
-          export HYDRA_SECRET_SYSTEM=$DEV_HYDRA_SECRET_SYSTEM
           sudo mkdir ~/.kube
           sudo chown -R runner:runner /home/runner/.kube
           sudo chmod -R 777 /home/runner/.kube
           echo "${KUBE_CONFIG}" > ~/.kube/config
           helm repo add ory https://k8s.ory.sh/helm/charts
           helm repo update
-          helm upgrade --install hydra ory/hydra --set 'hydra.config.secrets.system=$HYDRA_SECRET_SYSTEM' --set hydra.config.dsn=postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME --set hydra.config.urls.self.issuer=$ISSUER_URL --set hydra.config.urls.login=$LOGIN_URL --set hydra.config.urls.consent=$CONSENT_URL --set 'ingress.public.enabled=true' --set 'ingress.admin.enabled=true' --set 'hydra.automigration.enabled=true' --set 'hydra.dev=true' --namespace microservices
+          helm upgrade --install hydra ory/hydra --set 'hydra.config.secrets.system={$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | base64 | head -c 32)}' --set hydra.config.dsn=postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME --set hydra.config.urls.self.issuer=$ISSUER_URL --set hydra.config.urls.login=$LOGIN_URL --set hydra.config.urls.consent=$CONSENT_URL --set 'ingress.public.enabled=true' --set 'ingress.admin.enabled=true' --set 'hydra.automigration.enabled=true' --set 'hydra.dev=true' --namespace microservices
