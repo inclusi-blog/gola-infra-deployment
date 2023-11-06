@@ -95,7 +95,6 @@ jobs:
 
       - name: Deploy Postgres
         env:
-          CI_PROJECT_DIR: ${{ github.repository }}
           RELEASE_NAME: database
           NAMESPACE: ${{ vars.DEV_DB_DEPLOYMENT_NAMESPACE }}
           CHART_NAME: bitnami/postgresql
@@ -259,5 +258,67 @@ jobs:
           ENV_VARS=$(echo $SECRET_JSON | jq -r 'to_entries[] | "\(.key)=\(.value)"')
           # Set the environment variables
           eval $ENV_VARS
+          export DEV_REDIS_DB_PASSWORD=$DEV_REDIS_DB_PASSWORD
           envsubst < redis/values.yaml > redis/ci-values.yaml
           helm upgrade --install -f redis/ci-values.yaml ${RELEASE_NAME} ${CHART_NAME} --namespace ${NAMESPACE} --create-namespace --timeout 10m30s
+  deploy-kube:
+    runs-on: ubuntu-latest
+    needs: [deploy-redis-dev]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2  # Change to your desired region
+
+      - name: Set up Kubernetes environment
+        run: |
+          sudo curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+          sudo apt-get install apt-transport-https --yes
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+          sudo apt-get update
+          sudo apt-get install helm
+          sudo apt-get update
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          kubectl version --client
+      - name: Run helm commands
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+          RELEASE_NAME: oauth2-orchestration-service
+          NAMESPACE: microservices
+          CHART_NAME: oauth2-orchestration-service
+          ENV: dev
+          DB_USER: ${{ secrets.DEV_HYDRA_DB_USER }}
+          DB_NAME: ${{ secrets.DEV_HYDRA_DB_NAME }}
+          DB_PORT: ${{ secrets.DEV_DB_PORT }}
+          DB_HOST: ${{ secrets.DEV_DB_HOST }}
+          ISSUER_URL: ${{ vars.DEV_ISSUER_URL }}
+          LOGIN_URL: ${{ vars.DEV_LOGIN_URL }}
+          CONSENT_URL: ${{ vars.DEV_CONSENT_URL }}
+          DB_PASSWORD_KEY: ${{ vars.DEV_DB_AWS_SECRET_KEY }}
+          HYDRA_SECRET_KEY: ${{ secrets.DEV_HYDRA_SECRET_SYSTEM_KEY }}
+        run: |
+          SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$DB_PASSWORD_KEY" --query 'SecretString' --output text)
+          ENV_VARS=$(echo $SECRET_JSON | jq -r 'to_entries[] | "\(.key)=\(.value)"')
+          # Set the environment variables
+          eval $ENV_VARS
+          export DB_PASSWORD=$HYDRA_PASSWORD
+          SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$HYDRA_SECRET_KEY" --query 'SecretString' --output text)
+          ENV_VARS=$(echo $SECRET_JSON | jq -r 'to_entries[] | "\(.key)=\(.value)"')
+          # Set the environment variables
+          eval $ENV_VARS
+          export HYDRA_SECRET_SYSTEM=$DEV_HYDRA_SECRET_SYSTEM
+          sudo mkdir ~/.kube
+          sudo chown -R runner:runner /home/runner/.kube
+          sudo chmod -R 777 /home/runner/.kube
+          echo "${KUBE_CONFIG}" > ~/.kube/config
+          helm repo add ory https://k8s.ory.sh/helm/charts
+          helm repo update
+          helm upgrade --install hydra ory/hydra --set 'hydra.config.secrets.system=$HYDRA_SECRET_SYSTEM' --set hydra.config.dsn=postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME --set hydra.config.urls.self.issuer=$ISSUER_URL --set hydra.config.urls.login=$LOGIN_URL --set hydra.config.urls.consent=$CONSENT_URL --set 'ingress.public.enabled=true' --set 'ingress.admin.enabled=true' --set 'hydra.automigration.enabled=true' --set 'hydra.dev=true' --namespace microservices

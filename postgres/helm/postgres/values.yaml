@@ -45,19 +45,6 @@ global:
 
   env: $ENV
   secret: "global-secret"
-  dbPasswordKey: $DB_PASSWORD_KEY
-  hydraPasswordKey: $HYDRA_PASSWORD_KEY
-  userPasswordKey: $USER_PASSWORD_KEY
-  customerPasswordKey: $CUSTOMER_PASSWORD_KEY
-  deliveryPasswordKey: $DELIVERY_PASSWORD_KEY
-  orderPasswordKey: $ORDER_PASSWORD_KEY
-  eventPasswordKey: $EVENT_PASSWORD_KEY
-  ratingPasswordKey: $RATING_PASSWORD_KEY
-  productPasswordKey: $PRODUCT_PASSWORD_KEY
-  adminPasswordKey: $ADMIN_PASSWORD_KEY
-  mediaPasswordKey: $MEDIA_PASSWORD_KEY
-  staticPasswordKey: $STATIC_PASSWORD_KEY
-  cartPasswordKey: $CART_PASSWORD_KEY
 
 ## @section Common parameters
 ##
