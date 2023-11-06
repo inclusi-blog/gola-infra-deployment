@@ -261,7 +261,7 @@ jobs:
           export DEV_REDIS_DB_PASSWORD=$DEV_REDIS_DB_PASSWORD
           envsubst < redis/values.yaml > redis/ci-values.yaml
           helm upgrade --install -f redis/ci-values.yaml ${RELEASE_NAME} ${CHART_NAME} --namespace ${NAMESPACE} --create-namespace --timeout 10m30s
-  deploy-kube:
+  deploy-hydra:
     runs-on: ubuntu-latest
     needs: [deploy-redis-dev]
     steps:
