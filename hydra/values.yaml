@@ -1,28 +1,29 @@
-admin:
-  annotations: {}
-  className: ''
-  enabled: true
-  hosts:
-    - host: oauth.narratenet.com
-      paths:
-        - path: "/"
-          pathType: ImplementationSpecific
-  tls:
-    - hosts:
-        - oauth.narratenet.com
-      secretName: narratenet-tls
+ingress:
+  admin:
+    annotations: { }
+    className: ''
+    enabled: true
+    hosts:
+      - host: oauth.narratenet.com
+        paths:
+          - path: "/"
+            pathType: ImplementationSpecific
+    tls:
+      - hosts:
+          - oauth.narratenet.com
+        secretName: narratenet-tls
 
-public:
-  annotations: {}
-  className: ''
-  enabled: true
-  hosts:
-    - host: api.narratenet.com
-      paths:
-        - path: "/platform"
-          pathType: ImplementationSpecific
-  tls:
-    - hosts:
-        - api.narratenet.com
-      secretName: narratenet-tls
+  public:
+    annotations: { }
+    className: ''
+    enabled: true
+    hosts:
+      - host: api.narratenet.com
+        paths:
+          - path: "/platform"
+            pathType: ImplementationSpecific
+    tls:
+      - hosts:
+          - api.narratenet.com
+        secretName: narratenet-tls
 
