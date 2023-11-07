@@ -29,7 +29,6 @@ spec:
     - narratenet.com
     - api.narratenet.com
     - admin.narratenet.com
-    - oauth.narratenet.com
   secretName: narratenet-tls
   issuerRef:
     name: letsencrypt-staging
