@@ -27,3 +27,8 @@ ingress:
           - api.narratenet.com
         secretName: narratenet-tls
 
+
+hydra-maester:
+  adminService:
+    name: 'hydra-admin'
+    port: 4445
