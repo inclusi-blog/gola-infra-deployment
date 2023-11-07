@@ -42,6 +42,7 @@ spec:
   dnsNames:
     - www.narratenet.com
     - narratenet.com
+    - app.narratenet.com
   secretName: narratenet-tls
   issuerRef:
     name: letsencrypt-staging
