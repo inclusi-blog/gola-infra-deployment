@@ -25,10 +25,23 @@ metadata:
   namespace: microservices
 spec:
   dnsNames:
-    - www.narratenet.com
-    - narratenet.com
     - api.narratenet.com
     - admin.narratenet.com
+    - oauth.narratenet.com
+  secretName: narratenet-tls
+  issuerRef:
+    name: letsencrypt-staging
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: narratenet-app
+  namespace: gola-frontend
+spec:
+  dnsNames:
+    - www.narratenet.com
+    - narratenet.com
   secretName: narratenet-tls
   issuerRef:
     name: letsencrypt-staging
