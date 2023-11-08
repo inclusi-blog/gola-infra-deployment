@@ -261,6 +261,7 @@ jobs:
           eval $ENV_VARS
           export DEV_REDIS_DB_PASSWORD=$DEV_REDIS_DB_PASSWORD
           envsubst < redis/values.yaml > redis/ci-values.yaml
+          cat redis/ci-values.yaml
           helm upgrade --install -f redis/ci-values.yaml ${RELEASE_NAME} ${CHART_NAME} --namespace ${NAMESPACE} --create-namespace --timeout 10m30s
   deploy-hydra:
     runs-on: ubuntu-latest
