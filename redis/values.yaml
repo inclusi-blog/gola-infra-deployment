@@ -19,7 +19,7 @@ global:
   ##   - myRegistryKeySecretName
   ##
   imagePullSecrets: []
-  storageClass: ""
+  storageClass: "manual"
   redis:
     password: "$DEV_REDIS_DB_PASSWORD"
 
