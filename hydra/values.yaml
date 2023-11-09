@@ -22,7 +22,7 @@ ingress:
     hosts:
       - host: api.narratenet.com
         paths:
-          - path: "/platform"
+          - path: "/"
             pathType: ImplementationSpecific
     tls:
       - hosts:
