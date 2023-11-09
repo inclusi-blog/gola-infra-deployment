@@ -1,6 +1,7 @@
 ingress:
   admin:
-    annotations: { }
+    annotations:
+      kubernetes.io/ingress.class: nginx
     className: ''
     enabled: true
     hosts:
@@ -14,7 +15,8 @@ ingress:
         secretName: narratenet-tls
 
   public:
-    annotations: { }
+    annotations:
+      kubernetes.io/ingress.class: nginx
     className: ''
     enabled: true
     hosts:
