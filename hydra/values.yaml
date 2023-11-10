@@ -51,3 +51,9 @@ hydra-maester:
   adminService:
     name: 'hydra-admin'
     port: 4445
+
+hydra:
+  config:
+    ttl:
+      access_token: 72h
+      refresh_token: 720h
