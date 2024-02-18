@@ -262,9 +262,10 @@ jobs:
           export DEV_REDIS_DB_PASSWORD=$DEV_REDIS_DB_PASSWORD
           helm uninstall --namespace ${NAMESPACE} ${RELEASE_NAME}
           helm upgrade --install ${RELEASE_NAME} ${CHART_NAME} --namespace ${NAMESPACE} --create-namespace --timeout 10m30s --set master.persistence.storageClass=manual,replica.persistence.storageClass=manual --set volumePermissions.enabled=true --set global.redis.password=${DEV_REDIS_DB_PASSWORD}
+
   deploy-hydra:
     runs-on: ubuntu-latest
-    needs: [deploy-redis-dev]
+    needs: [deploy-postgres-dev]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
